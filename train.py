@@ -37,6 +37,32 @@ warnings.filterwarnings(
 )
 
 
+def _dataloader_worker_init_fn(worker_id: int):
+    seed = torch.initial_seed() % 2**32
+    try:
+        import random
+        random.seed(int(seed))
+    except Exception:
+        pass
+    try:
+        np.random.seed(int(seed))
+    except Exception:
+        pass
+    try:
+        torch.set_num_threads(1)
+    except Exception:
+        pass
+    try:
+        import cv2
+        cv2.setNumThreads(0)
+        try:
+            cv2.ocl.setUseOpenCL(False)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
 def _is_global_zero() -> bool:
     return str(os.environ.get("RANK", "0")) == "0"
 

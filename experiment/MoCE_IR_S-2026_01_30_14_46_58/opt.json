@@ -1,0 +1,39 @@
+{
+  "model": "MoCE_IR_S",
+  "epochs": 300,
+  "batch_size": 32,
+  "lr": 0.0002,
+  "de_type": [
+    "deblur"
+  ],
+  "trainset": "standard",
+  "loss_type": "L1",
+  "patch_size": 128,
+  "balance_loss_weight": 0.01,
+  "fft_loss_weight": 1.0,
+  "num_workers": 12,
+  "accum_grad": 1,
+  "print_model": false,
+  "check_val_every_n_epoch": 50,
+  "resume_from": null,
+  "fine_tune_from": null,
+  "checkpoint_id": "2026_01_22_20_18_57/checkpoints",
+  "benchmarks": [
+    "gopro"
+  ],
+  "save_results": true,
+  "full_res_eval": false,
+  "deterministic": false,
+  "benchmark": true,
+  "precision": "16-mixed",
+  "tf32": true,
+  "log_every_n_steps": 10,
+  "prefetch_factor": 4,
+  "persistent_workers": true,
+  "data_file_dir": "/home/cxhlab/lqj/data/open_dataset_8_1_1",
+  "output_path": "output/",
+  "wblogger": false,
+  "ckpt_dir": "/home/cxhlab/lqj/moceir/moceir/experiment",
+  "num_gpus": 2,
+  "metrics_csv": "/home/cxhlab/lqj/moceir/moceirv1-20260123_multi_network/experiment/MoCE_IR_S-2026_01_30_14_46_58/metrics.csv"
+}
