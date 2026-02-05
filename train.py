@@ -29,6 +29,7 @@ from options import train_options
 from utils.schedulers import LinearWarmupCosineAnnealingLR
 from data.dataset_utils import AIOTrainDataset, CDD11, IRBenchmarks
 from utils.loss_utils import FFTLoss, FocalL1Loss, FocalLoss
+from utils.model_summary import get_model_flops, flops_to_string
 
 
 # 全局关闭 torch.load(weights_only=False) 的冗长安全提示（Lightning / torchmetrics 内部会触发）。
@@ -134,6 +135,65 @@ def _forward_model(net: nn.Module, x: torch.Tensor, de_id: torch.Tensor) -> torc
         return net(x, de_id)
     except TypeError:
         return net(x)
+
+
+def _count_parameters(net: nn.Module) -> int:
+    return int(sum(p.numel() for p in net.parameters()))
+
+
+def _count_trainable_parameters(net: nn.Module) -> int:
+    return int(sum(p.numel() for p in net.parameters() if p.requires_grad))
+
+
+def _format_num_params(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.3f} M"
+    if n >= 1_000:
+        return f"{n / 1_000:.3f} K"
+    return str(int(n))
+
+
+class _FlopsForwardWrapper(nn.Module):
+    def __init__(self, net: nn.Module, de_id: torch.Tensor):
+        super().__init__()
+        self.net = net
+        self.de_id = de_id
+
+    def forward(self, x: torch.Tensor):
+        return _forward_model(self.net, x, self.de_id)
+
+
+def _print_model_params_and_flops(*, model: nn.Module, opt, device: torch.device) -> None:
+    total_params = _count_parameters(model)
+    trainable_params = _count_trainable_parameters(model)
+    model_name = str(getattr(opt, "model", "model"))
+    patch_size = int(getattr(opt, "patch_size", 128))
+
+    print(f"[Model] name={model_name}")
+    print(f"[Model] params_total={_format_num_params(total_params)} params_trainable={_format_num_params(trainable_params)}")
+
+    flops_str = None
+    try:
+        model_dev = next(model.parameters()).device
+    except StopIteration:
+        model_dev = device
+
+    if model_dev != device:
+        try:
+            model.to(device)
+        except Exception:
+            pass
+
+    try:
+        dummy_de_id = torch.zeros(1, device=device, dtype=torch.long)
+        wrapped = _FlopsForwardWrapper(model, dummy_de_id)
+        flops = get_model_flops(wrapped, input_res=(3, patch_size, patch_size), print_per_layer_stat=False)
+        flops_str = flops_to_string(flops)
+    except Exception as e:
+        print(f"[Warn] FLOPs profile failed: {e}")
+
+    if flops_str is not None:
+        print(f"[Model] FLOPs({patch_size}x{patch_size})={flops_str}")
 
 
 def _extract_balance_loss(net: nn.Module, ref_tensor: torch.Tensor) -> torch.Tensor:
@@ -387,6 +447,11 @@ def main(opt):
         if accelerator.is_main_process:
             print(f"[Fine-tune] Resolved fine_tune_from '{ckpt_spec}' to: {ckpt_path}")
         _load_weights(model, ckpt_path)
+
+    accelerator.wait_for_everyone()
+    if accelerator.is_main_process:
+        _print_model_params_and_flops(model=model, opt=opt, device=accelerator.device)
+    accelerator.wait_for_everyone()
 
     if getattr(opt, "print_model", False) and accelerator.is_main_process:
         print(model)

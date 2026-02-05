@@ -5,14 +5,14 @@ import pathlib
 # 基础训练设置
 # ============================================================================
 # MODEL 可选: "MoCE_IR", "MoCE_IR_S", "ACFormer"
-MODEL = "MoCE_IR_S"  # "MoCE_IR" 或 "MoCE_IR_S" 或 "ACFormer"
-EPOCHS = 1
-BATCH_SIZE = 16  # 每个GPU的batch size 20
+MODEL = "MoCE_IR_PSR"  # "MoCE_IR" 或 "MoCE_IR_S" 或 "ACFormer"，MoCE_IR_PSR
+EPOCHS = 300
+BATCH_SIZE = 64  # 每个GPU的batch size 20
 LR = 2e-4
 
 DE_TYPE = ["deblur"]  # 可选: "denoise_15/25/50", "dehaze", "derain", "deblur", "synllie"
 TRAINSET = "standard"  # "standard" 或 "CDD11_*"
-LOSS_TYPE = "focal_l1"  # "L1" 或 "fft" focal_l1
+LOSS_TYPE = "L1"  # "L1" 或 "fft" focal_l1
 PATCH_SIZE = 128
 BALANCE_LOSS_WEIGHT = 0.01
 FFT_LOSS_WEIGHT = 1.0
